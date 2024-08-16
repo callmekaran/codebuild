@@ -1,0 +1,27 @@
+#Do not add Deploy Stage **SKIP Deploy STAGE**
+
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 18
+
+  pre_build:
+    commands:
+      - rm -rf node_modules
+      - npm cache clean --force
+
+
+  build:
+    commands:
+      - echo Running build commands...
+      - npm install --force # Install dependencies
+      - npm install ajv ajv-keywords
+      - npm run build  # Run build script
+
+  post_build:
+    commands:
+      - echo Running post-build commands...
+      - aws s3 sync build/ s3://ravat.ravat.com
+      - #add cloudfront
