@@ -25,3 +25,8 @@ phases:
       - echo Running post-build commands...
       - aws s3 sync build/ s3://ravat.ravat.com
       - #add cloudfront
+
+
+      # - export MY_SECRET=$(aws secretsmanager get-secret-value --secret-id your-secret-id --query SecretString --output text)
+      # - echo $MY_SECRET > .env # Save the secret to an .env file or export directly
+      # - npm run build  # Run build script with the secret
