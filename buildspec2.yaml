@@ -1,32 +1,39 @@
-#Do not add Deploy Stage **SKIP Deploy STAGE**
-
 version: 0.2
+
+env:
+  secrets-manager:
+    SECRETS_ARN: 
+  variables:
+    SECRET_ID: 
+
 
 phases:
   install:
     runtime-versions:
       nodejs: 18
-
-  pre_build:
     commands:
+      - echo "Installing dependencies..."
       - rm -rf node_modules
       - npm cache clean --force
 
+  pre_build:
+    commands:
+      - echo "Retrieving secrets from Secrets Manager..."
+      - SECRETS_JSON=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ID" --query SecretString --output text)
+      - echo "Writing secrets to .env file..."
+      - echo $SECRETS_JSON | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' > .env
+      - cat .env  # Optional: for verification in logs, be cautious with sensitive data
 
   build:
     commands:
-      - echo Running build commands...
-      - npm install --force # Install dependencies
+      - echo "Running build commands..."
+      - npm install --force  # Install dependencies, ensuring any necessary cleaning is done first
       - npm install ajv ajv-keywords
       - npm run build  # Run build script
 
   post_build:
     commands:
-      - echo Running post-build commands...
-      - aws s3 sync build/ s3://ravat.ravat.com
-      - #add cloudfront
+      - echo "Running post-build commands..."
+      - aws s3 sync build/ s3://staging.taxcapture.com
+      - aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --paths "/*"
 
-
-      # - export MY_SECRET=$(aws secretsmanager get-secret-value --secret-id your-secret-id --query SecretString --output text)
-      # - echo $MY_SECRET > .env # Save the secret to an .env file or export directly
-      # - npm run build  # Run build script with the secret
