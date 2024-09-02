@@ -1,0 +1,32 @@
+version: 0.2
+
+env:
+  variables:
+    TF_VERSION: "1.9.5"
+
+phases:
+  pre_build:
+    commands:
+      - echo "Installation Of Terraform"
+      - cd /usr/bin
+      - curl -s -qL -o terraform.zip https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+      - unzip -o terraform.zip
+      - terraform --version
+      - echo "Entering the Terraform directory..."
+
+  build:
+    commands:
+      - cd "$CODEBUILD_SRC_DIR"
+      - ls -al
+      - cd terraform
+      - echo "Initializing Terraform..."
+      - terraform init
+      - echo "Planning Terraform deployment..."
+      - terraform plan
+      - echo "Applying Terraform configuration..."
+      - terraform apply -auto-approve
+      - echo "Running deployment script on EC2 instance via SSM..."
+      - sleep 100
+      - aws ssm send-command --document-name "AWS-RunShellScript" --document-version "1" --targets '[{"Key":"InstanceIds","Values":["i-0d39d9edd0d72affe"]}]' --parameters '{"commands":["sudo -Hiu ubuntu bash << '"'"'END'"'"'","","cd /var/www/html/taxcapture_backend/","","aws s3 cp s3://stage-backend-deployment-script/backend-deployment.sh .","","sh /var/www/html/taxcapture_backend/backend-deployment.sh","","END"],"workingDirectory":[""],"executionTimeout":["3600"]}' --timeout-seconds 600 --max-concurrency "50" --max-errors "0" --region ap-southeast-2
+      - echo "Destroy Terraform"
+      - terraform destroy -auto-approve
